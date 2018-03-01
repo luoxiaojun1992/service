@@ -12,7 +12,8 @@ $server = new Server("127.0.0.1", 9501);
 $cli = null;
 
 $server->on('WorkerStart', function ($serv, $worker_id) use(&$cli, $config) {
-    $cli = extension_loaded('connect_pool') ? new \redisProxy() : new \Redis();
+//    $cli = extension_loaded('connect_pool') ? new \redisProxy() : new \Redis();
+    $cli = new \Redis();
     $cli->connect($config['host'], $config['port']);
     $cli->auth($config['password']);
 });
@@ -54,9 +55,9 @@ $server->on("request", function ($request, $response) use ($config, &$cli) {
     }
 
     //释放连接到连接池
-    if (extension_loaded('connect_pool')) {
-        $cli->release();
-    }
+//    if (extension_loaded('connect_pool')) {
+//        $cli->release();
+//    }
 
     $response->end(json_encode(['code' => 0, 'msg' => 'ok', 'data' => ['count' => count($counts) > 1 ? $counts : $counts[0]]]));
 });

@@ -12,6 +12,7 @@ $server = new Server("127.0.0.1", 9501);
 $cli = null;
 
 $server->on('WorkerStart', function ($serv, $worker_id) use(&$cli, $config) {
+    //CP不支持multi-pipeline
 //    $cli = extension_loaded('connect_pool') ? new \redisProxy() : new \Redis();
     $cli = new \Redis();
     $cli->connect($config['host'], $config['port']);
@@ -55,6 +56,7 @@ $server->on("request", function ($request, $response) use ($config, &$cli) {
     }
 
     //释放连接到连接池
+    //CP不支持multi-pipeline
 //    if (extension_loaded('connect_pool')) {
 //        $cli->release();
 //    }

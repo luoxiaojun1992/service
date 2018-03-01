@@ -8,6 +8,7 @@ define('REDIS_PREFIX', 'countService_');
 
 $server = new Server("127.0.0.1", 9501);
 
+/** @var \Redis $cli */
 $cli = null;
 
 $server->on('WorkerStart', function ($serv, $worker_id) use(&$cli, $config) {
@@ -36,16 +37,25 @@ $server->on("request", function ($request, $response) use ($config, &$cli) {
     }
     $op = 'h' . ucfirst($op);
 
-    $counts = [];
+    //批量原子操作
+    $cli->multi(\Redis::PIPELINE);
     foreach ($secondKeys as $secondKey) {
         if (in_array($op, ['hIncrBy', 'hDecrBy'])) {
-            $counts[] = intval($cli->{$op}(REDIS_PREFIX . $key, $secondKey, $step));
+            $cli->{$op}(REDIS_PREFIX . $key, $secondKey, $step);
         } else {
-            $counts[] = intval($cli->{$op}(REDIS_PREFIX . $key, $secondKey));
+            $cli->{$op}(REDIS_PREFIX . $key, $secondKey);
         }
-        if (extension_loaded('connect_pool')) {
-            $cli->release();
-        }
+    }
+    $counts = $cli->exec();
+
+    //格式化
+    foreach ($counts as $k => $count) {
+        $counts[$k] = intval($count);
+    }
+
+    //释放连接到连接池
+    if (extension_loaded('connect_pool')) {
+        $cli->release();
     }
 
     $response->end(json_encode(['code' => 0, 'msg' => 'ok', 'data' => ['count' => count($counts) > 1 ? $counts : $counts[0]]]));

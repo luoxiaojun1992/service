@@ -43,6 +43,11 @@ $server->on("request", function ($request, $response) use ($config, &$cli) {
     $cli->multi(\Redis::PIPELINE);
     foreach ($secondKeys as $secondKey) {
         if (in_array($op, ['hIncrBy', 'hDecrBy'])) {
+            //redis没有hDecrBy命令，用hIncrBy负值替代
+            if ($op == 'hDecrBy') {
+                $op = 'hIncrBy';
+                $step = -$step;
+            }
             $cli->{$op}(REDIS_PREFIX . $key, $secondKey, $step);
         } else {
             $cli->{$op}(REDIS_PREFIX . $key, $secondKey);
